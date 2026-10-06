@@ -1,0 +1,16 @@
+Eigen stem (optioneel)
+----------------------
+Zet hier mp3-bestanden neer en vul manifest.json aan; dan spreekt de app jouw opnames uit
+in plaats van de stem van de telefoon.
+
+Benodigde bestanden (korte opnames, zonder stilte vooraan):
+  knooppunt.mp3   ("knooppunt")
+  daarna.mp3      ("daarna")
+  eindpunt.mp3    ("eindpunt")
+  start.mp3       ("route gestart, ga naar")
+  1.mp3 ... 99.mp3   (de nummers, zonder voorloopnul: 7.mp3, 47.mp3)
+
+manifest.json bevat de lijst van aanwezige bestanden, bijvoorbeeld:
+  { "files": ["knooppunt", "daarna", "eindpunt", "start", "1", "2", "3"] }
+
+Ontbreekt er één bestand voor een melding, dan gebruikt de app voor die melding de telefoonstem.
