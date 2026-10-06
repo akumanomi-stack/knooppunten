@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#1b5e20">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <title>Knooppunten</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="stylesheet" href="vendor/leaflet/leaflet.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="map" aria-label="Kaart"></div>
+
+  <header id="topbar">
+    <div class="seg" role="tablist" aria-label="Netwerk">
+      <button id="net-w" role="tab" aria-selected="true" class="on">Wandelen</button>
+      <button id="net-f" role="tab" aria-selected="false">Fietsen</button>
+    </div>
+    <div id="topbtns">
+      <button id="btn-account" class="rb" aria-label="Account en openbare routes" title="Account en openbare routes"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8.5" r="3.6"/><path d="M4.5 20c.8-4 3.7-6 7.5-6s6.7 2 7.5 6"/></svg></button>
+      <button id="btn-routes" class="rb" aria-label="Mijn routes" title="Mijn routes"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4.5L5 21V4a1 1 0 0 1 1-1z"/></svg></button>
+      <button id="btn-bell" class="rb" aria-label="Meldingen instellen" title="Meldingen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 17V11a6 6 0 0 1 12 0v6l1.5 2h-15z"/><path d="M10 21.5a2.2 2.2 0 0 0 4 0"/></svg></button>
+    </div>
+  </header>
+
+  <div id="toast" role="status" aria-live="polite" hidden></div>
+
+  <div id="mapbtns">
+    <button id="btn-compass" aria-label="Kaart naar het noorden draaien" title="Noorden boven" hidden><svg id="compass-svg" viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><path d="M12 2.5l4 9.5h-8z" fill="#c62828"/><path d="M12 21.5l-4-9.5h8z" fill="currentColor" opacity=".55"/></svg></button>
+    <button id="btn-gps" aria-pressed="false" title="Mijn locatie">
+      <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><circle cx="12" cy="12" r="3.2" fill="currentColor"/><circle cx="12" cy="12" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 1v4M12 19v4M1 12h4M19 12h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    </button>
+    <button id="btn-follow" aria-pressed="false" title="Kaart volgt mij" hidden>Volg</button>
+    <button id="btn-loop" title="Rondje van gewenste afstand">Rondje</button>
+  </div>
+
+  <section id="sheet" class="collapsed" aria-label="Route">
+    <button id="grab" aria-label="Routeoverzicht en kaartinfo tonen of verbergen" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 15l6-6 6 6"/></svg></button>
+
+    <div id="nav" hidden>
+      <div class="nav-next">
+        <span class="label">Volgende knooppunt</span>
+        <span class="big"><b id="nav-ref">–</b> <small id="nav-dist"></small></span>
+      </div>
+      <div class="nav-side">
+        <span class="label">Nog te gaan</span>
+        <span id="nav-rem" class="mid">–</span>
+      </div>
+      <p id="nav-warn" hidden>Je zit van de route af.</p>
+    </div>
+
+    <div id="nearby" hidden>
+      <span class="label">Dichtstbijzijnde knooppunt</span>
+      <span class="mid"><b id="nearby-ref">–</b> <small id="nearby-dist"></small></span>
+    </div>
+
+    <div id="summary">
+      <div class="sum-main">
+        <div id="sum-title">Tik knooppunten op de kaart om een route te maken</div>
+        <div id="sum-seq" class="seq"></div>
+      </div>
+      <div id="sum-len"></div>
+    </div>
+
+    <div id="stats" class="stats" hidden>
+      <span class="stat" id="st-steps" title="Stappen (gemiddeld 1333 per km)"><svg viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="8" cy="6.5" rx="2.4" ry="3.3"/><ellipse cx="8" cy="12.7" rx="1.7" ry="1.5"/><ellipse cx="16" cy="12" rx="2.4" ry="3.3"/><ellipse cx="16" cy="18.2" rx="1.7" ry="1.5"/></svg><b></b></span>
+      <span class="stat" id="st-kcal" title="Verbrande calorieën (schatting)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.8c.6 3.2 4.6 5.2 4.6 9.7a4.6 4.6 0 0 1-9.2 0c0-2.2 1-3.4 2.2-4.6.1 2 .9 2.6 1.6 2.8C10.5 8 10.9 5 12 2.8z"/></svg><b></b></span>
+      <span class="stat" id="st-time" title="Geschatte tijd"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.2"/><path d="M12 7.5V12l3 2"/></svg><b></b></span>
+      <span class="stat" id="st-water" title="Watertappunten langs de route" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3s6 6.4 6 11a6 6 0 0 1-12 0c0-4.6 6-11 6-11z"/></svg><b></b></span>
+    </div>
+
+    <div id="choices" hidden>
+      <div class="choices-head">
+        <span id="choices-label" class="label">Vanaf – naar</span>
+        <button id="btn-peek-add" hidden>Toevoegen</button>
+      </div>
+      <div id="chips" class="chips"></div>
+    </div>
+
+    <button id="btn-start" class="startbtn" hidden>Start</button>
+
+    <div id="actions">
+      <button id="btn-undo" class="ib" aria-label="Laatste stap terug" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg><span>Terug</span></button>
+      <button id="btn-clear" class="ib" aria-label="Route wissen" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14"/><path d="M10 7V5h4v2"/><path d="M7 7l1 12h8l1-12"/></svg><span>Wissen</span></button>
+      <button id="btn-save" class="ib" aria-label="Route opslaan" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4.5L5 21V4a1 1 0 0 1 1-1z"/><path d="M12 7.5v5M9.5 10h5"/></svg><span>Opslaan</span></button>
+      <button id="btn-share" class="ib" aria-label="Route delen of exporteren" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="12" r="2.2"/><circle cx="17.5" cy="6" r="2.2"/><circle cx="17.5" cy="18" r="2.2"/><path d="m8 11 7.5-4M8 13l7.5 4"/></svg><span>Delen</span></button>
+    </div>
+
+    <footer>
+      <span id="data-info">Kaartdata laden…</span>
+      <span>© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap-bijdragers</a></span>
+    </footer>
+  </section>
+
+  <dialog id="loop-dialog" aria-labelledby="loop-title">
+    <h2 id="loop-title">Rondje maken</h2>
+    <label class="field">Eigen afstand
+      <span><input id="loop-km" type="number" inputmode="numeric" min="1" max="120" step="1" value="8"> km</span>
+    </label>
+    <p id="loop-start" class="muted">Start: –</p>
+    <div class="dialog-actions">
+      <button id="loop-close" type="button">Sluiten</button>
+      <button id="loop-go" type="button" class="primary">Zoek deze afstand</button>
+    </div>
+    <p id="loop-status" class="muted" role="status"></p>
+    <ul id="loop-results"></ul>
+  </dialog>
+
+  <dialog id="notify-dialog" aria-labelledby="notify-title">
+    <h2 id="notify-title">Meldingen</h2>
+    <p class="muted">Wat wil je horen of voelen bij een knooppunt? Je kunt combineren.</p>
+    <div class="opts" role="group" aria-label="Meldingen">
+      <button type="button" class="opt" data-opt="silent" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5z"/><path d="m16 9.5 5 5M21 9.5l-5 5"/></svg><span>Geluid uit</span></button>
+      <button type="button" class="opt" data-opt="beep" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5z"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/></svg><span>Piepje</span></button>
+      <button type="button" class="opt" data-opt="vibrate" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="3.5" width="8" height="17" rx="2"/><path d="M4.5 8v8M2 10v4M19.5 8v8M22 10v4"/></svg><span>Trillen</span></button>
+      <button type="button" class="opt" data-opt="speak" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H11l-4.5 4v-4H4z"/><path d="M8 9.5h8M8 12.5h5"/></svg><span>Uitspreken</span></button>
+    </div>
+    <label class="field">Melden op <span><input id="set-near" type="range" min="30" max="120" step="10" value="50"> <output id="near-out">50 m</output></span></label>
+    <label class="field" id="voice-row">Stem <select id="set-voice"></select></label>
+    <p id="voice-hint" class="muted"></p>
+    <div class="dialog-actions">
+      <button id="btn-test-notify" type="button">Test</button>
+      <button id="notify-close" type="button" class="primary">Klaar</button>
+    </div>
+  </dialog>
+
+  <dialog id="share-dialog" aria-labelledby="share-title">
+    <h2 id="share-title">Route delen</h2>
+    <div class="menu">
+      <button id="share-gpx" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v10M8 10.5l4 4 4-4"/><path d="M5 18.5h14"/></svg><span><b>GPX-bestand</b><small>Voor Komoot, Organic Maps, je horloge</small></span></button>
+      <button id="share-gmaps" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-6.5-5.6-6.5-10.5a6.5 6.5 0 0 1 13 0C18.5 15.4 12 21 12 21z"/><circle cx="12" cy="10.5" r="2.3"/></svg><span><b>Google Maps</b><small>Opent de route met tussenstops</small></span></button>
+      <button id="share-text" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H11l-4.5 4v-4H4z"/><path d="M8 9.5h8M8 12.5h5"/></svg><span><b>Tekst</b><small>De stappen voor WhatsApp of Messenger</small></span></button>
+    </div>
+    <div class="dialog-actions"><button id="share-close" type="button" class="primary">Sluiten</button></div>
+  </dialog>
+
+  <dialog id="steps-dialog" aria-labelledby="steps-title">
+    <h2 id="steps-title">Stappen</h2>
+    <p id="steps-sub" class="muted"></p>
+    <ol id="steps-list"></ol>
+    <div class="dialog-actions">
+      <button id="steps-close" type="button">Sluiten</button>
+      <button id="steps-share" type="button">Deel tekst</button>
+      <button id="steps-copy" type="button" class="primary">Kopieer</button>
+    </div>
+  </dialog>
+
+  <dialog id="save-dialog" aria-labelledby="save-title">
+    <h2 id="save-title">Route opslaan</h2>
+    <label class="field stack">Naam <input id="save-name" type="text" maxlength="60" autocomplete="off"></label>
+    <div class="dialog-actions">
+      <button id="save-cancel" type="button">Annuleren</button>
+      <button id="save-ok" type="button" class="primary">Opslaan</button>
+    </div>
+  </dialog>
+
+
+  <dialog id="cloud-dialog" aria-labelledby="cloud-title">
+    <h2 id="cloud-title">Account</h2>
+    <div id="cloud-off" class="muted" hidden>Accounts staan nog niet aan. Vul <code>js/firebase-config.js</code> in om in te loggen en routes te delen.</div>
+    <div id="cloud-out" hidden>
+      <p class="muted">Log in om je routes te delen, een ster te geven en te upvoten. Alleen een zelfgekozen naam wordt bewaard; geen e-mailadres en geen GPS-sporen.</p>
+      <button id="cloud-login" type="button" class="gbtn"><svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.9 6.1C12.4 13.6 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.1 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.4c-.5 2.9-2.1 5.3-4.5 7l7.1 5.5c4.2-3.8 6.6-9.5 6.6-17z"/><path fill="#FBBC05" d="M10.5 28.7c-.5-1.4-.8-2.9-.8-4.7s.3-3.2.8-4.7l-7.9-6.1C.9 16.4 0 20.100 0 24s.9 7.600 2.600 10.800l7.900-6.100z"/><path fill="#34A853" d="M24 48c6.500 0 12-2.100 16-5.800l-7.100-5.500c-2 1.300-4.500 2.100-8.900 2.100-6.300 0-11.600-4.100-13.500-9.800l-7.900 6.100C6.500 42.600 14.600 48 24 48z"/></svg><span>Doorgaan met Google</span></button>
+      <button id="cloud-guest" type="button" class="linkbtn">Doorgaan zonder account</button>
+      <p class="muted small">Zonder account kun je alle openbare routes bekijken en openen.</p>
+    </div>
+    <div id="cloud-in" hidden>
+      <label class="field stack">Jouw naam in de app <input id="cloud-name" type="text" maxlength="30" autocomplete="off" placeholder="bijv. Bram"></label>
+      <div class="dialog-actions"><button id="cloud-save-name" type="button">Naam opslaan</button><button id="cloud-logout" type="button">Uitloggen</button></div>
+    </div>
+    <div id="cloud-nav" class="iconrow" hidden>
+      <button id="open-favs" type="button" aria-label="Mijn sterren"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1 5.8L12 16.8 6.8 19.6l1-5.8-4.3-4.1 5.9-.8z"/></svg></button>
+      <button id="open-public" type="button" aria-label="Openbare routes"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3c2.7 2.6 2.7 15.4 0 18"/><path d="M12 3c-2.7 2.6-2.7 15.4 0 18"/></svg></button>
+    </div>
+    <details class="privacy"><summary>Privacy</summary>
+      <p>Bij inloggen bewaart de app je account-id en de naam die je zelf kiest. Als je een route deelt, komen de titel, de knooppunten, de afstand en je naam openbaar te staan. Je locatie en gelopen sporen worden nooit opgeslagen. Je kunt een gedeelde route altijd weer verwijderen.</p>
+    </details>
+    <div class="dialog-actions"><button id="cloud-close" type="button" class="primary">Sluiten</button></div>
+  </dialog>
+
+  <dialog id="public-dialog" aria-labelledby="public-title">
+    <h2 id="public-title">Openbare routes</h2>
+    <div class="seg2" role="group" aria-label="Sorteren"><button id="sort-votes" type="button" class="on">Populair</button><button id="sort-new" type="button">Nieuw</button></div>
+    <div id="public-filters" class="filters">
+      <div class="seg2 netseg" role="group" aria-label="Soort route"><button type="button" data-net="" class="on">Alle</button><button type="button" data-net="w" aria-label="Wandelroutes"></button><button type="button" data-net="f" aria-label="Fietsroutes"></button></div>
+      <div class="filterrow"><select id="flt-province" aria-label="Provincie"><option value="">Alle provincies</option></select><button id="flt-near" type="button" class="chipbtn" aria-pressed="false">Dichtbij mij</button></div>
+    </div>
+    <p id="public-empty" class="muted" hidden></p>
+    <ul id="public-list"></ul>
+    <div class="dialog-actions"><button id="public-close" type="button" class="primary">Sluiten</button></div>
+  </dialog>
+
+  <dialog id="publish-dialog" aria-labelledby="publish-title">
+    <h2 id="publish-title">Route delen</h2>
+    <p class="muted">Iedereen kan deze route zien: titel, knooppunten en afstand, met jouw naam erbij.</p>
+    <label class="field stack">Titel <input id="publish-name" type="text" maxlength="60" autocomplete="off"></label>
+    <label class="field stack">Plaats <input id="publish-place" type="text" maxlength="40" autocomplete="off" placeholder="wordt automatisch gezocht"></label>
+    <label class="field stack">Provincie <select id="publish-province"><option value="">Onbekend</option></select></label>
+    <p id="publish-error" class="err" hidden></p>
+    <div class="dialog-actions"><button id="publish-cancel" type="button">Annuleren</button><button id="publish-ok" type="button" class="primary">Delen</button></div>
+  </dialog>
+
+  <dialog id="routes-dialog" aria-labelledby="routes-title">
+    <h2 id="routes-title">Mijn routes</h2>
+    <p id="routes-empty" class="muted" hidden>Nog geen routes opgeslagen. Maak een route en tik op Opslaan.</p>
+    <ul id="routes-list"></ul>
+    <div class="dialog-actions"><button id="routes-close" type="button" class="primary">Sluiten</button></div>
+  </dialog>
+
+  <script src="vendor/leaflet/leaflet.js"></script>
+  <script src="vendor/leaflet/leaflet-rotate.js"></script>
+  <script type="module" src="js/app.js?v=21"></script>
+</body>
+</html>
