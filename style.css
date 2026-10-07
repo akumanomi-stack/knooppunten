@@ -218,3 +218,19 @@ dialog h2 { margin: 0 0 12px; font-size: 20px; }
 #public-list .open .where { color: var(--accent); font-size: 12px; font-weight: 600; }
 #publish-dialog .field { flex-direction: column; align-items: stretch; gap: 4px; margin-top: 8px; }
 #publish-dialog .field input, #publish-dialog .field select { width: 100%; max-width: none; text-align: left; font-size: 16px; padding: 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--fg); }
+
+/* info-kaartje met aflopende tijdsbalk */
+#nodecard { position: fixed; z-index: 650; top: calc(64px + var(--safe-t)); left: 50%; transform: translateX(-50%); width: min(calc(100% - 20px), 380px); display: flex; flex-direction: column; gap: 2px; padding: 12px 16px 16px; border-radius: 16px; overflow: hidden; background: rgba(20, 28, 23, .94); color: #fff; box-shadow: var(--shadow); text-align: left; cursor: pointer; }
+#nodecard[hidden] { display: none; }
+#nc-title { font-size: 20px; line-height: 1.2; }
+#nc-sub { font-size: 15px; opacity: .9; }
+#nc-stats { font-size: 14px; opacity: .8; margin-top: 2px; }
+#nc-bar { position: absolute; left: 0; right: 0; bottom: 0; height: 5px; background: #66bb6a; transform-origin: left center; }
+@keyframes ncbar { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+
+/* onderweg: compact paneel met alleen de navigatie en de Stop-knop */
+.nav-speed { text-align: center; }
+.nav-speed small { display: block; font-size: 12px; color: var(--muted); margin-top: -2px; }
+#sheet.navmode #summary, #sheet.navmode #stats, #sheet.navmode #actions, #sheet.navmode footer, #sheet.navmode #choices { display: none; }
+#sheet.navmode #nav { border-bottom: 0; margin-bottom: 0; padding-bottom: 4px; }
+#sheet.navmode .startbtn { margin-top: 4px; min-height: 40px; }

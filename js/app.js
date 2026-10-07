@@ -1,11 +1,12 @@
-import { Graph, tileKeysForBounds, routeProgress, routeToGPX, formatDistance, haversine, googleMapsUrl } from './graph.js?v=21';
-import { isNative, startNativeWatch, stopNativeWatch, ensureNotificationPermission, nativeNotify } from './native.js?v=21';
-import { createCloud, validateTitle } from './cloud.js?v=21';
-import { PROVINCES, lookupPlace, formatKm } from './place.js?v=21';
-import { configured, firebaseConfig } from './firebase-config.js?v=21';
-import { routeSteps, routeText, routeTitle, estimateMinutes, formatDuration, readRoutes, writeRoutes, makeSavedRoute, defaultRouteName } from './share.js?v=21';
-import { stepsFor, kcalFor, formatSteps, waterAlong } from './stats.js?v=21';
-import { dutchVoices, bestVoice, speakText, say, loadClips } from './voice.js?v=21';
+import { Graph, tileKeysForBounds, routeProgress, routeToGPX, formatDistance, haversine, googleMapsUrl } from './graph.js?v=22';
+import { isNative, startNativeWatch, stopNativeWatch, ensureNotificationPermission, nativeNotify } from './native.js?v=22';
+import { createCloud, validateTitle } from './cloud.js?v=22';
+import { PROVINCES, lookupPlace, formatKm } from './place.js?v=22';
+import { configured, firebaseConfig } from './firebase-config.js?v=22';
+import { routeSteps, routeText, routeTitle, estimateMinutes, formatDuration, readRoutes, writeRoutes, makeSavedRoute, defaultRouteName } from './share.js?v=22';
+import { stepsFor, kcalFor, formatSteps, waterAlong } from './stats.js?v=22';
+import { createTrip, tripUpdate, liveKmh, avgKmh, legDone, fmtKmh, fmtMoveTime } from './trip.js?v=22';
+import { dutchVoices, bestVoice, speakText, say, loadClips } from './voice.js?v=22';
 
 const L = window.L;
 const $ = (id) => document.getElementById(id);
@@ -20,7 +21,8 @@ const state = {
   route: null,
   peek: null, // knooppunt dat bekeken wordt zonder het toe te voegen
   navigating: false, // GPS aan en er is een route: toon navigatie in plaats van buurknooppunten
-  gps: { on: false, watchId: null, pos: null, acc: null, follow: false, lastAlong: 0, announced: new Set(), lastNext: null },
+  gps: { on: false, watchId: null, pos: null, acc: null, follow: false, lastAlong: 0, announced: new Set(), lastNext: null, zoomOnFix: null, progress: null },
+  trip: createTrip(),
   index: null,
 };
 const graph = new Graph();
@@ -52,6 +54,7 @@ L.Renderer.include({
 const map = L.map('map', { rotate: true, touchRotate: true, rotateControl: false, bearing: 0, zoomControl: false, renderer: L.canvas({ padding: 0.5 }), center: [52.1, 5.3], zoom: 8, minZoom: 6, maxZoom: 18 });
 L.control.zoom({ position: 'topleft' }).addTo(map);
 window.knooppuntenMap = map; // voor tests en foutopsporing
+window.knooppuntenState = state;
 
 const PDOK_ATTR = 'Kaart: <a href="https://www.pdok.nl">PDOK/Kadaster</a>';
 const pdokUrl = (style) => `https://service.pdok.nl/brt/achtergrondkaart/wmts/v2_0/${style}/EPSG:3857/{z}/{x}/{y}.png`;
@@ -91,6 +94,43 @@ function toast(msg, ms = 4000) {
   t.hidden = false;
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => (t.hidden = true), ms);
+}
+
+// Info-kaartje (knooppunt bereikt, aangetikt punt) met een balkje dat laat zien wanneer het vanzelf verdwijnt
+const CARD_MS = 4000;
+let cardTimer;
+function showCard({ title, sub = '', stats = '' }, ms = CARD_MS) {
+  const c = $('nodecard');
+  $('nc-title').textContent = title;
+  $('nc-sub').textContent = sub;
+  $('nc-sub').hidden = !sub;
+  $('nc-stats').textContent = stats;
+  $('nc-stats').hidden = !stats;
+  $('toast').hidden = true;
+  const bar = $('nc-bar');
+  bar.style.animation = 'none';
+  c.hidden = false;
+  void bar.offsetWidth; // animatie opnieuw laten beginnen
+  bar.style.animation = `ncbar ${ms}ms linear forwards`;
+  clearTimeout(cardTimer);
+  cardTimer = setTimeout(() => (c.hidden = true), ms);
+}
+$('nodecard').onclick = () => {
+  clearTimeout(cardTimer);
+  $('nodecard').hidden = true;
+};
+
+// Info bij het aantikken van een punt tijdens het lopen of fietsen
+function infoNode(key, ref, lat, lon) {
+  const parts = [];
+  const pos = state.gps.pos;
+  if (pos) parts.push(`${formatDistance(haversine(pos, [lat, lon]))} van je vandaan`);
+  const na = state.route?.nodeAt;
+  const along = state.gps.progress?.along;
+  const i = na ? na.findIndex((n) => n.key === key) : -1;
+  if (i >= 0 && along != null && na[i].cum > along) parts.push(`${formatDistance(na[i].cum - along)} over de route`);
+  else if (i >= 0) parts.push('al gepasseerd');
+  showCard({ title: `Knooppunt ${ref}`, sub: parts.join(' · ') });
 }
 
 // ------------------------------------------------------------------ data laden
@@ -175,6 +215,7 @@ async function redraw() {
     }
     m.on('click', (ev) => {
       L.DomEvent.stopPropagation(ev);
+      if (state.started) return infoNode(n.key, n.ref, n.lat, n.lon); // onderweg: info in plaats van de route aanpassen
       addWaypoint(n.key);
     });
     m.on('contextmenu', (ev) => {
@@ -197,6 +238,7 @@ function drawRoute() {
     });
     m.on('click', (ev) => {
       L.DomEvent.stopPropagation(ev);
+      if (state.started) return infoNode(k, n.ref, n.lat, n.lon);
       const lastWp = state.waypoints[state.waypoints.length - 1];
       if (i === 0 && state.waypoints.length >= 2 && lastWp !== k) {
         addWaypoint(k); // het beginpunt aantikken sluit het rondje
@@ -447,8 +489,13 @@ function startRoute() {
   if (!state.gps.on) startGps();
   state.gps.follow = true;
   $('btn-follow').setAttribute('aria-pressed', 'true');
-  if (state.gps.pos) map.setView(state.gps.pos, Math.max(map.getZoom(), 16));
-  $('sheet').classList.add('collapsed');
+  state.trip = createTrip();
+  try { map.setBearing(0); } catch { /* geen draaiplugin: niet erg */ }
+  const navZoom = state.net === 'f' ? 16 : 17; // inzoomen zoals bij een navigatie
+  if (state.gps.pos) map.setView(state.gps.pos, navZoom);
+  else state.gps.zoomOnFix = navZoom;
+  $('sheet').classList.add('collapsed', 'navmode');
+  $('grab').setAttribute('aria-expanded', 'false');
   const first = state.route.nodeAt[1] || state.route.nodeAt[0];
   notifyNode({ ref: first.ref, start: true });
   renderStart();
@@ -457,6 +504,7 @@ function startRoute() {
 }
 function stopRoute() {
   if (!state.started) return;
+  $('sheet').classList.remove('navmode');
   stopGps(); // zet ook state.started uit
   renderStart();
 }
@@ -468,6 +516,7 @@ function onPos(p) {
   state.gps.pos = pos;
   state.gps.lastFixAt = Date.now();
   state.gps.acc = p.coords.accuracy;
+  state.gps.speed = Number.isFinite(p.coords.speed) ? p.coords.speed : null; // m/s, als het toestel die geeft
   if (!meMarker) {
     meMarker = L.marker(pos, { icon: L.divIcon({ className: '', html: '<div class="me"></div>', iconSize: [18, 18], iconAnchor: [9, 9] }), interactive: false, zIndexOffset: 2000 });
     meCircle = L.circle(pos, { radius: p.coords.accuracy, weight: 1, color: '#1976d2', fillOpacity: 0.08, interactive: false });
@@ -480,7 +529,11 @@ function onPos(p) {
   }
   meMarker.setLatLng(pos);
   meCircle.setLatLng(pos).setRadius(p.coords.accuracy);
-  if (firstFix) {
+  if (state.gps.zoomOnFix) {
+    map.setView(pos, state.gps.zoomOnFix);
+    state.gps.zoomOnFix = null;
+    firstFix = false;
+  } else if (firstFix) {
     firstFix = false;
     map.setView(pos, Math.max(map.getZoom(), 15));
   } else if (state.gps.follow) {
@@ -530,6 +583,7 @@ async function updateGpsPanel() {
     const p = routeProgress(state.route, pos, state.gps.lastAlong);
     if (p) {
       if (p.off < 60) state.gps.lastAlong = Math.max(state.gps.lastAlong, p.along);
+      state.gps.progress = p;
       nav.hidden = false;
       nearby.hidden = true;
       setNavigating(true);
@@ -540,6 +594,8 @@ async function updateGpsPanel() {
       const warn = $('nav-warn');
       warn.hidden = p.off < limit;
       if (!warn.hidden) warn.textContent = `Je zit ongeveer ${formatDistance(p.off)} van de route af.`;
+      if (p.off < limit && state.started) tripUpdate(state.trip, state.gps.lastFixAt || Date.now(), p.along);
+      renderSpeed();
       if (p.off < limit) handleAnnouncements(p);
       sizeSheet();
       return;
@@ -558,6 +614,17 @@ async function updateGpsPanel() {
     $('nearby-dist').textContent = formatDistance(first.dist);
   }
   sizeSheet();
+}
+
+function renderSpeed() {
+  const box = $('nav-speed-box');
+  box.hidden = !state.started;
+  if (!state.started) return;
+  const g = state.gps.speed;
+  const live = g != null && g >= 0.4 ? g * 3.6 : liveKmh(state.trip); // snelheid van het toestel, anders zelf berekend
+  $('nav-speed').textContent = fmtKmh(live);
+  const avg = avgKmh(state.trip);
+  $('nav-avg').textContent = avg != null ? `Ø ${fmtKmh(avg)}` : '';
 }
 
 let wakeLock = null;
@@ -581,8 +648,14 @@ function sizeSheet() {
   });
 }
 $('grab').onclick = () => {
-  $('sheet').classList.toggle('collapsed');
-  $('grab').setAttribute('aria-expanded', String(!$('sheet').classList.contains('collapsed')));
+  const sh = $('sheet');
+  if (state.started) {
+    sh.classList.toggle('navmode'); // onderweg: compacte navigatie of het volledige paneel
+    $('grab').setAttribute('aria-expanded', String(!sh.classList.contains('navmode')));
+  } else {
+    sh.classList.toggle('collapsed');
+    $('grab').setAttribute('aria-expanded', String(!sh.classList.contains('collapsed')));
+  }
   sizeSheet();
 };
 window.addEventListener('resize', sizeSheet);
@@ -915,7 +988,19 @@ function beep() {
 function notifyNode(info) {
   const { ref, after, isLast, start } = info;
   const text = start ? `Route gestart: ga naar knooppunt ${ref}` : isLast ? `Eindpunt: knooppunt ${ref}` : `Knooppunt ${ref}${after ? ` · daarna ${after}` : ''}`;
-  toast(text, 6000);
+  const card = start
+    ? { title: `Route gestart`, sub: `Ga naar knooppunt ${ref}` }
+    : { title: isLast ? `Eindpunt ${ref} bereikt` : `Knooppunt ${ref}`, sub: !isLast && after ? `Daarna ${after}` : '' };
+  if (!start && state.started) {
+    const t = legDone(state.trip);
+    const bits = [];
+    if (t.legKmh != null) bits.push(`Ø ${fmtKmh(t.legKmh)} dit stuk`);
+    if (t.totKmh != null) bits.push(`${fmtKmh(t.totKmh)} totaal`);
+    if (isLast && t.totMoveS > 0) bits.push(`${fmtMoveTime(t.totMoveS)} onderweg`);
+    else if (info.remaining != null) bits.push(`nog ${formatDistance(info.remaining)}`);
+    card.stats = bits.join(' · ');
+  } else if (info.stats) card.stats = info.stats;
+  showCard(card);
   if (isNative && document.visibilityState !== 'visible') nativeNotify('Knooppunten', text); // app op de achtergrond of scherm uit
   if (settings.vibrate) navigator.vibrate?.(start ? [200] : [250, 120, 250]);
   if (settings.beep) beep();
@@ -923,7 +1008,7 @@ function notifyNode(info) {
 }
 $('btn-test-notify').onclick = () => {
   ensureAudio();
-  notifyNode({ ref: '47', after: '12', isLast: false });
+  notifyNode({ ref: '47', after: '12', isLast: false, stats: 'Ø 14,2 km/u dit stuk · 13,8 km/u totaal · nog 5,3 km' });
 };
 
 function handleAnnouncements(p) {
@@ -933,13 +1018,13 @@ function handleAnnouncements(p) {
   if (g.lastNext != null && p.next && p.next.index > g.lastNext && !g.announced.has(g.lastNext) && nodeAt[g.lastNext]) {
     g.announced.add(g.lastNext);
     const n = nodeAt[g.lastNext];
-    notifyNode({ ref: n.ref, after: nodeAt[g.lastNext + 1]?.ref ?? null, isLast: g.lastNext === nodeAt.length - 1 });
+    notifyNode({ ref: n.ref, after: nodeAt[g.lastNext + 1]?.ref ?? null, isLast: g.lastNext === nodeAt.length - 1, remaining: p.remaining });
   }
   // het volgende knooppunt komt dichtbij
   const near = Math.min(120, Math.max(settings.near, (g.acc || 0) * 0.5));
   if (p.next && p.next.dist < near && !g.announced.has(p.next.index)) {
     g.announced.add(p.next.index);
-    notifyNode({ ref: p.next.ref, after: p.next.after, isLast: p.next.isLast });
+    notifyNode({ ref: p.next.ref, after: p.next.after, isLast: p.next.isLast, remaining: p.remaining });
   }
   g.lastNext = p.next ? p.next.index : nodeAt.length;
 }
@@ -970,6 +1055,10 @@ function drawWater() {
     if (++n > 400) break;
     const m = L.marker([p[0], p[1]], { icon: L.divIcon({ className: '', html: `<div class="water">${DROP}</div>`, iconSize: [24, 24], iconAnchor: [12, 12] }), keyboard: false, title: p[2] || 'Drinkwaterpunt' });
     m.bindTooltip(p[2] ? `Drinkwater: ${p[2]}` : 'Drinkwaterpunt', { direction: 'top', offset: [0, -10] });
+    m.on('click', () => {
+      const pos = state.gps.pos;
+      showCard({ title: p[2] ? `Drinkwater: ${p[2]}` : 'Drinkwaterpunt', sub: pos ? `${formatDistance(haversine(pos, [p[0], p[1]]))} van je vandaan` : '' });
+    });
     m.addTo(waterLayer);
   }
 }
@@ -1195,7 +1284,7 @@ let cloudApi = cloud;
 async function initCloud() {
   if (!configured()) return;
   try {
-    const { createFirebaseAdapter } = await import('./firebase-adapter.js?v=21');
+    const { createFirebaseAdapter } = await import('./firebase-adapter.js?v=22');
     const adapter = await createFirebaseAdapter(firebaseConfig);
     cloudApi = createCloud(adapter, { onChange: renderCloud });
     Object.assign(cloud, cloudApi);

@@ -29,6 +29,12 @@
   </header>
 
   <div id="toast" role="status" aria-live="polite" hidden></div>
+  <div id="nodecard" role="status" aria-live="polite" hidden>
+    <b id="nc-title"></b>
+    <span id="nc-sub"></span>
+    <span id="nc-stats"></span>
+    <i id="nc-bar" aria-hidden="true"></i>
+  </div>
 
   <div id="mapbtns">
     <button id="btn-compass" aria-label="Kaart naar het noorden draaien" title="Noorden boven" hidden><svg id="compass-svg" viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><path d="M12 2.5l4 9.5h-8z" fill="#c62828"/><path d="M12 21.5l-4-9.5h8z" fill="currentColor" opacity=".55"/></svg></button>
@@ -46,6 +52,11 @@
       <div class="nav-next">
         <span class="label">Volgende knooppunt</span>
         <span class="big"><b id="nav-ref">–</b> <small id="nav-dist"></small></span>
+      </div>
+      <div class="nav-speed" id="nav-speed-box" hidden>
+        <span class="label">Snelheid</span>
+        <span class="mid"><b id="nav-speed">–</b></span>
+        <small id="nav-avg"></small>
       </div>
       <div class="nav-side">
         <span class="label">Nog te gaan</span>
@@ -214,6 +225,6 @@
 
   <script src="vendor/leaflet/leaflet.js"></script>
   <script src="vendor/leaflet/leaflet-rotate.js"></script>
-  <script type="module" src="js/app.js?v=21"></script>
+  <script type="module" src="js/app.js?v=22"></script>
 </body>
 </html>

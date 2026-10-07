@@ -1,5 +1,5 @@
 // Service worker: app en kaartdata werken offline; kaartachtergrond wordt bewaard voor wat je bekeken hebt.
-const VERSION = 'v21';
+const VERSION = 'v22';
 const SHELL = `shell-${VERSION}`;
 const DATA = `data-${VERSION}`;
 const TILES = `tiles-${VERSION}`;
@@ -14,6 +14,7 @@ const SHELL_FILES = [
   'js/native.js',
   'js/share.js',
   'js/stats.js',
+  'js/trip.js',
   'js/voice.js',
   'js/filter.js',
   'js/cloud.js',

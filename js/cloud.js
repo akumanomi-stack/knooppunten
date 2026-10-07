@@ -1,6 +1,6 @@
 // Inloggen, openbare routes, sterren en upvotes. De logica staat los van Firebase (adapter), zodat ze te testen is.
-import { isClean, cleanTitle } from './filter.js?v=21';
-import { PROVINCES, filterRoutes } from './place.js?v=21';
+import { isClean, cleanTitle } from './filter.js?v=22';
+import { PROVINCES, filterRoutes } from './place.js?v=22';
 
 export const MAX_PUBLIC_ROUTES_PER_USER = 50;
 
