@@ -38,12 +38,15 @@
 
   <div id="mapbtns">
     <button id="btn-compass" aria-label="Kaart naar het noorden draaien" title="Noorden boven" hidden><svg id="compass-svg" viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><path d="M12 2.5l4 9.5h-8z" fill="#c62828"/><path d="M12 21.5l-4-9.5h8z" fill="currentColor" opacity=".55"/></svg></button>
+    <button id="btn-poi" aria-pressed="false" aria-expanded="false" aria-controls="poitray" title="Punten onderweg" aria-label="Punten onderweg"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-6.5-5.6-6.5-10.5a6.5 6.5 0 0 1 13 0C18.5 15.4 12 21 12 21z"/><circle cx="12" cy="10.5" r="2.3"/></svg></button>
     <button id="btn-gps" aria-pressed="false" title="Mijn locatie">
       <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><circle cx="12" cy="12" r="3.2" fill="currentColor"/><circle cx="12" cy="12" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 1v4M12 19v4M1 12h4M19 12h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
     </button>
     <button id="btn-follow" aria-pressed="false" title="Kaart volgt mij" hidden>Volg</button>
     <button id="btn-loop" title="Rondje van gewenste afstand">Rondje</button>
   </div>
+
+  <div id="poitray" role="group" aria-label="Punten onderweg tonen" hidden></div>
 
   <section id="sheet" class="collapsed" aria-label="Route">
     <button id="grab" aria-label="Routeoverzicht en kaartinfo tonen of verbergen" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 15l6-6 6 6"/></svg></button>
@@ -83,6 +86,7 @@
       <span class="stat" id="st-kcal" title="Verbrande calorieën (schatting)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.8c.6 3.2 4.6 5.2 4.6 9.7a4.6 4.6 0 0 1-9.2 0c0-2.2 1-3.4 2.2-4.6.1 2 .9 2.6 1.6 2.8C10.5 8 10.9 5 12 2.8z"/></svg><b></b></span>
       <span class="stat" id="st-time" title="Geschatte tijd"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.2"/><path d="M12 7.5V12l3 2"/></svg><b></b></span>
       <span class="stat" id="st-water" title="Watertappunten langs de route" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3s6 6.4 6 11a6 6 0 0 1-12 0c0-4.6 6-11 6-11z"/></svg><b></b></span>
+      <span id="st-poi" class="stat-group"></span>
     </div>
 
     <div id="choices" hidden>
@@ -225,6 +229,6 @@
 
   <script src="vendor/leaflet/leaflet.js"></script>
   <script src="vendor/leaflet/leaflet-rotate.js"></script>
-  <script type="module" src="js/app.js?v=22"></script>
+  <script type="module" src="js/app.js?v=24"></script>
 </body>
 </html>

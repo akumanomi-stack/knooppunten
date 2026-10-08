@@ -1,5 +1,5 @@
 // Tekst van een route (voor kopiëren en delen) en opgeslagen routes. Zonder DOM, zodat het te testen is.
-import { formatDistance } from './graph.js?v=22';
+import { formatDistance } from './graph.js?v=24';
 
 export function estimateMinutes(lengthM, net) {
   const kmh = net === 'f' ? 15 : 4.5;

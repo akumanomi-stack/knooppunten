@@ -1,5 +1,5 @@
 // Service worker: app en kaartdata werken offline; kaartachtergrond wordt bewaard voor wat je bekeken hebt.
-const VERSION = 'v22';
+const VERSION = 'v24';
 const SHELL = `shell-${VERSION}`;
 const DATA = `data-${VERSION}`;
 const TILES = `tiles-${VERSION}`;
@@ -15,6 +15,7 @@ const SHELL_FILES = [
   'js/share.js',
   'js/stats.js',
   'js/trip.js',
+  'js/poi.js',
   'js/voice.js',
   'js/filter.js',
   'js/cloud.js',
@@ -60,7 +61,7 @@ self.addEventListener('fetch', (e) => {
   const url = new URL(req.url);
 
   if (url.origin === self.location.origin) {
-    const isData = (url.pathname.includes('/data/t_') || url.pathname.endsWith('/data/water.json'));
+    const isData = (url.pathname.includes('/data/t_') || url.pathname.endsWith('/data/water.json') || url.pathname.includes('/data/poi_'));
     if (isData || url.pathname.includes('/vendor/')) {
       // kaartdata en bibliotheken: eerst cache
       e.respondWith(

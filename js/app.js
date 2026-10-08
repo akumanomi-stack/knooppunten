@@ -1,12 +1,13 @@
-import { Graph, tileKeysForBounds, routeProgress, routeToGPX, formatDistance, haversine, googleMapsUrl } from './graph.js?v=22';
-import { isNative, startNativeWatch, stopNativeWatch, ensureNotificationPermission, nativeNotify } from './native.js?v=22';
-import { createCloud, validateTitle } from './cloud.js?v=22';
-import { PROVINCES, lookupPlace, formatKm } from './place.js?v=22';
-import { configured, firebaseConfig } from './firebase-config.js?v=22';
-import { routeSteps, routeText, routeTitle, estimateMinutes, formatDuration, readRoutes, writeRoutes, makeSavedRoute, defaultRouteName } from './share.js?v=22';
-import { stepsFor, kcalFor, formatSteps, waterAlong } from './stats.js?v=22';
-import { createTrip, tripUpdate, liveKmh, avgKmh, legDone, fmtKmh, fmtMoveTime } from './trip.js?v=22';
-import { dutchVoices, bestVoice, speakText, say, loadClips } from './voice.js?v=22';
+import { Graph, tileKeysForBounds, routeProgress, routeToGPX, formatDistance, haversine, googleMapsUrl } from './graph.js?v=24';
+import { isNative, startNativeWatch, stopNativeWatch, ensureNotificationPermission, nativeNotify } from './native.js?v=24';
+import { createCloud, validateTitle } from './cloud.js?v=24';
+import { PROVINCES, lookupPlace, formatKm } from './place.js?v=24';
+import { configured, firebaseConfig } from './firebase-config.js?v=24';
+import { routeSteps, routeText, routeTitle, estimateMinutes, formatDuration, readRoutes, writeRoutes, makeSavedRoute, defaultRouteName } from './share.js?v=24';
+import { stepsFor, kcalFor, formatSteps, waterAlong } from './stats.js?v=24';
+import { CATS, CAT_KEYS, badgeHtml, svg as poiSvg, loadPrefs, savePrefs, fetchCat, describe as poiDescribe, countLabel } from './poi.js?v=24';
+import { createTrip, tripUpdate, liveKmh, avgKmh, legDone, fmtKmh, fmtMoveTime } from './trip.js?v=24';
+import { dutchVoices, bestVoice, speakText, say, loadClips } from './voice.js?v=24';
 
 const L = window.L;
 const $ = (id) => document.getElementById(id);
@@ -79,6 +80,54 @@ pdok.on('tileerror', () => {
     toast('Kaartachtergrond laadt niet. Probeer de OpenStreetMap-laag (knop linksboven).');
   }
 });
+
+// Buiten Nederland heeft PDOK geen kaart: schakel dan vanzelf over op OpenStreetMap (en terug).
+// Grove omtrek van Nederland inclusief de Noordzee (lat, lon); nauwkeurig genoeg om de kaartlaag te kiezen.
+const NL_OUTLINE = [
+  [55.0, 2.0], [55.0, 7.2], [53.33, 7.2], [53.2, 7.1], [52.9, 7.07], [52.6, 7.06], [52.45, 7.07], [52.22, 7.04],
+  [51.97, 6.86], [51.9, 6.68], [51.85, 6.4], [51.87, 6.1], [51.78, 6.0], [51.6, 6.1], [51.4, 6.2], [51.2, 6.15], [50.95, 6.03], [50.76, 6.02], [50.75, 5.9],
+  [50.85, 5.68], [51.0, 5.75], [51.25, 5.7], [51.31, 5.12], [51.4, 5.05], [51.43, 4.78], [51.47, 4.45], [51.37, 4.22], [51.25, 3.85],
+  [51.27, 3.58], [51.37, 3.36], [51.37, 2.0],
+];
+function inNL(lat, lon) {
+  let inside = false;
+  for (let i = 0, j = NL_OUTLINE.length - 1; i < NL_OUTLINE.length; j = i++) {
+    const [yi, xi] = NL_OUTLINE[i];
+    const [yj, xj] = NL_OUTLINE[j];
+    if (yi > lat !== yj > lat && lon < ((xj - xi) * (lat - yi)) / (yj - yi) + xi) inside = !inside;
+  }
+  return inside;
+}
+let baseManual = false; // zodra jij zelf een kaartlaag kiest, schakelen we niet meer automatisch
+let baseSwitching = false;
+let lastNlBase = pastel;
+map.on('baselayerchange', () => {
+  if (!baseSwitching) baseManual = true;
+});
+function autoBaseLayer() {
+  if (baseManual) return;
+  const c = map.getCenter();
+  const nl = inNL(c.lat, c.lng);
+  const onNl = map.hasLayer(pastel) || map.hasLayer(pdok);
+  baseSwitching = true;
+  try {
+    if (!nl && onNl) {
+      lastNlBase = map.hasLayer(pdok) ? pdok : pastel;
+      map.removeLayer(pastel);
+      map.removeLayer(pdok);
+      osm.addTo(map);
+      toast('Buiten Nederland: kaart van OpenStreetMap', 2500);
+    } else if (nl && map.hasLayer(osm)) {
+      map.removeLayer(osm);
+      lastNlBase.addTo(map);
+    }
+  } finally {
+    baseSwitching = false;
+  }
+}
+map.on('moveend', autoBaseLayer);
+window.knooppuntenInNL = inNL; // voor tests
+window.knooppuntenBaseManual = () => baseManual;
 
 const edgeLayer = L.layerGroup().addTo(map);
 const nodeLayer = L.layerGroup().addTo(map);
@@ -1030,6 +1079,7 @@ function handleAnnouncements(p) {
 }
 
 // ------------------------------------------------------------------ stappen, calorieën, water
+const poiPrefs = loadPrefs();
 let waterPoints = []; // [[lat, lon, naam?]]
 const waterLayer = L.layerGroup().addTo(map);
 const DROP = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3s6 6.4 6 11a6 6 0 0 1-12 0c0-4.6 6-11 6-11z"/></svg>';
@@ -1047,7 +1097,7 @@ async function loadWater() {
 
 function drawWater() {
   waterLayer.clearLayers();
-  if (!waterPoints.length || map.getZoom() < 13) return;
+  if (!poiPrefs.water || !waterPoints.length || map.getZoom() < 13) return;
   const b = map.getBounds().pad(0.15);
   let n = 0;
   for (const p of waterPoints) {
@@ -1064,6 +1114,74 @@ function drawWater() {
 }
 map.on('moveend', drawWater);
 
+// ------------------------------------------------------------------ punten onderweg (toilet, opladen, picknick, eten)
+const poiData = {}; // categorie -> [[lat, lon, naam?, extra?]]
+const poiLoading = {};
+const poiLayer = L.layerGroup().addTo(map);
+const MAX_POI = 250;
+
+async function ensurePoi(cat) {
+  if (poiData[cat] || poiLoading[cat]) return;
+  poiLoading[cat] = fetchCat(cat).then((pts) => {
+    poiData[cat] = pts;
+    drawPoi();
+    renderStats();
+  });
+}
+
+function drawPoi() {
+  poiLayer.clearLayers();
+  const b = map.getBounds().pad(0.15);
+  const z = map.getZoom();
+  for (const cat of CAT_KEYS) {
+    if (!poiPrefs[cat] || !poiData[cat] || z < CATS[cat].minZoom) continue;
+    let n = 0;
+    for (const p of poiData[cat]) {
+      if (!b.contains([p[0], p[1]])) continue;
+      if (++n > MAX_POI) break;
+      const d = poiDescribe(cat, p);
+      const m = L.marker([p[0], p[1]], { icon: L.divIcon({ className: '', html: badgeHtml(cat), iconSize: [26, 26], iconAnchor: [13, 13] }), keyboard: false, title: d.title });
+      m.on('click', () => {
+        const pos = state.gps.pos;
+        const dist = pos ? `${formatDistance(haversine(pos, [p[0], p[1]]))} van je vandaan` : '';
+        showCard({ title: d.title, sub: d.info, stats: dist });
+      });
+      m.addTo(poiLayer);
+    }
+  }
+}
+map.on('moveend', drawPoi);
+
+function buildPoiTray() {
+  const tray = $('poitray');
+  const items = [['water', 'Drinkwater', `<div class="poi" style="--pc:#1e88e5">${poiSvg('<path d="M12 3s6 6.4 6 11a6 6 0 0 1-12 0c0-4.6 6-11 6-11z"/>')}</div>`]];
+  for (const k of CAT_KEYS) items.push([k, CATS[k].label, badgeHtml(k)]);
+  tray.innerHTML = items.map(([k, label, badge]) => `<button type="button" data-cat="${k}" aria-pressed="${!!poiPrefs[k]}">${badge}<span>${label}</span></button>`).join('');
+  tray.querySelectorAll('button').forEach((btn) => {
+    btn.onclick = () => {
+      const k = btn.dataset.cat;
+      poiPrefs[k] = !poiPrefs[k];
+      btn.setAttribute('aria-pressed', String(poiPrefs[k]));
+      savePrefs(poiPrefs);
+      if (poiPrefs[k] && k !== 'water') ensurePoi(k);
+      drawWater();
+      drawPoi();
+      renderStats();
+    };
+  });
+}
+buildPoiTray();
+for (const k of CAT_KEYS) if (poiPrefs[k]) ensurePoi(k);
+$('btn-poi').onclick = () => {
+  const open = $('poitray').hidden;
+  $('poitray').hidden = !open;
+  $('btn-poi').setAttribute('aria-pressed', String(open));
+  $('btn-poi').setAttribute('aria-expanded', String(open));
+};
+map.on('click', () => {
+  if (!$('poitray').hidden) $('btn-poi').onclick();
+});
+
 function routeStats() {
   const r = state.route;
   if (!r) return { steps: null, kcal: 0, water: 0, minutes: 0 };
@@ -1071,6 +1189,7 @@ function routeStats() {
     steps: stepsFor(r.length, state.net),
     kcal: kcalFor(r.length, state.net),
     water: waterAlong(r.coords, waterPoints, 150).length,
+    poi: Object.fromEntries(CAT_KEYS.filter((k) => poiData[k]).map((k) => [k, waterAlong(r.coords, poiData[k], k === 'cafe' ? 120 : 100).length])),
     minutes: estimateMinutes(r.length, state.net),
   };
 }
@@ -1089,6 +1208,8 @@ function renderStats() {
   $('st-time').querySelector('b').textContent = formatDuration(st.minutes);
   $('st-water').hidden = !waterPoints.length;
   if (waterPoints.length) $('st-water').querySelector('b').textContent = st.water ? `${st.water} water` : 'geen water';
+  $('st-poi').innerHTML = CAT_KEYS.filter((k) => poiPrefs[k] && st.poi && st.poi[k] > 0)
+    .map((k) => `<span class="stat" style="--pc:${CATS[k].color}" title="${CATS[k].label} langs de route">${poiSvg(CATS[k].icon, 'poi-ic')}<b>${st.poi[k]}</b></span>`).join('');
   sizeSheet();
 }
 
@@ -1284,7 +1405,7 @@ let cloudApi = cloud;
 async function initCloud() {
   if (!configured()) return;
   try {
-    const { createFirebaseAdapter } = await import('./firebase-adapter.js?v=22');
+    const { createFirebaseAdapter } = await import('./firebase-adapter.js?v=24');
     const adapter = await createFirebaseAdapter(firebaseConfig);
     cloudApi = createCloud(adapter, { onChange: renderCloud });
     Object.assign(cloud, cloudApi);
