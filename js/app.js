@@ -1,13 +1,13 @@
-import { Graph, tileKeysForBounds, routeProgress, routeToGPX, formatDistance, haversine, googleMapsUrl } from './graph.js?v=24';
-import { isNative, startNativeWatch, stopNativeWatch, ensureNotificationPermission, nativeNotify } from './native.js?v=24';
-import { createCloud, validateTitle } from './cloud.js?v=24';
-import { PROVINCES, lookupPlace, formatKm } from './place.js?v=24';
-import { configured, firebaseConfig } from './firebase-config.js?v=24';
-import { routeSteps, routeText, routeTitle, estimateMinutes, formatDuration, readRoutes, writeRoutes, makeSavedRoute, defaultRouteName } from './share.js?v=24';
-import { stepsFor, kcalFor, formatSteps, waterAlong } from './stats.js?v=24';
-import { CATS, CAT_KEYS, badgeHtml, svg as poiSvg, loadPrefs, savePrefs, fetchCat, describe as poiDescribe, countLabel } from './poi.js?v=24';
-import { createTrip, tripUpdate, liveKmh, avgKmh, legDone, fmtKmh, fmtMoveTime } from './trip.js?v=24';
-import { dutchVoices, bestVoice, speakText, say, loadClips } from './voice.js?v=24';
+import { Graph, tileKeysForBounds, routeProgress, routeToGPX, formatDistance, haversine, googleMapsUrl } from './graph.js?v=25';
+import { isNative, startNativeWatch, stopNativeWatch, ensureNotificationPermission, nativeNotify } from './native.js?v=25';
+import { createCloud, validateTitle } from './cloud.js?v=25';
+import { PROVINCES, lookupPlace, formatKm } from './place.js?v=25';
+import { configured, firebaseConfig } from './firebase-config.js?v=25';
+import { routeSteps, routeText, routeTitle, estimateMinutes, formatDuration, readRoutes, writeRoutes, makeSavedRoute, defaultRouteName } from './share.js?v=25';
+import { stepsFor, kcalFor, formatSteps, waterAlong } from './stats.js?v=25';
+import { CATS, CAT_KEYS, badgeHtml, svg as poiSvg, loadPrefs, savePrefs, fetchCat, describe as poiDescribe, countLabel } from './poi.js?v=25';
+import { createTrip, tripUpdate, liveKmh, avgKmh, legDone, fmtKmh, fmtMoveTime } from './trip.js?v=25';
+import { dutchVoices, bestVoice, speakText, say, loadClips } from './voice.js?v=25';
 
 const L = window.L;
 const $ = (id) => document.getElementById(id);
@@ -184,9 +184,17 @@ function infoNode(key, ref, lat, lon) {
 
 // ------------------------------------------------------------------ data laden
 const tilePromises = new Map();
+// Laadindicator (ring linksonder): telt lopende downloads van tegels en punten.
+let busyCount = 0;
+function busy(on) {
+  busyCount = Math.max(0, busyCount + (on ? 1 : -1));
+  const el = document.getElementById('busy');
+  if (el) el.hidden = busyCount === 0;
+}
 async function loadTile(key) {
   if (!state.index || !state.index.tiles[key]) return;
   if (!tilePromises.has(key)) {
+    busy(true);
     tilePromises.set(
       key,
       fetch(`data/t_${key}.json`)
@@ -199,7 +207,8 @@ async function loadTile(key) {
           tilePromises.delete(key);
           console.warn(e);
           toast('Kaartdata laden mislukt. Ben je offline en is dit gebied nog niet opgeslagen?');
-        }),
+        })
+        .finally(() => busy(false)),
     );
   }
   return tilePromises.get(key);
@@ -567,7 +576,7 @@ function onPos(p) {
   state.gps.acc = p.coords.accuracy;
   state.gps.speed = Number.isFinite(p.coords.speed) ? p.coords.speed : null; // m/s, als het toestel die geeft
   if (!meMarker) {
-    meMarker = L.marker(pos, { icon: L.divIcon({ className: '', html: '<div class="me"></div>', iconSize: [18, 18], iconAnchor: [9, 9] }), interactive: false, zIndexOffset: 2000 });
+    meMarker = L.marker(pos, { icon: L.divIcon({ className: '', html: '<div class="me"><i></i></div>', iconSize: [18, 18], iconAnchor: [9, 9] }), interactive: false, zIndexOffset: 2000 });
     meCircle = L.circle(pos, { radius: p.coords.accuracy, weight: 1, color: '#1976d2', fillOpacity: 0.08, interactive: false });
     meCircle.addTo(gpsLayer);
     meMarker.addTo(gpsLayer);
@@ -1122,11 +1131,12 @@ const MAX_POI = 250;
 
 async function ensurePoi(cat) {
   if (poiData[cat] || poiLoading[cat]) return;
+  busy(true);
   poiLoading[cat] = fetchCat(cat).then((pts) => {
     poiData[cat] = pts;
     drawPoi();
     renderStats();
-  });
+  }).finally(() => busy(false));
 }
 
 function drawPoi() {
@@ -1405,7 +1415,7 @@ let cloudApi = cloud;
 async function initCloud() {
   if (!configured()) return;
   try {
-    const { createFirebaseAdapter } = await import('./firebase-adapter.js?v=24');
+    const { createFirebaseAdapter } = await import('./firebase-adapter.js?v=25');
     const adapter = await createFirebaseAdapter(firebaseConfig);
     cloudApi = createCloud(adapter, { onChange: renderCloud });
     Object.assign(cloud, cloudApi);

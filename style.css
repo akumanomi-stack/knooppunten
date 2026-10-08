@@ -71,7 +71,7 @@ footer a { color: inherit; }
 .nodepin { display: grid; place-items: center; min-width: 26px; height: 22px; padding: 0 5px; border-radius: 11px; background: var(--w); color: #fff; font: 700 12px/1 system-ui, sans-serif; border: 2px solid #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, .45); }
 .nodepin.f { background: var(--bike); }
 .wp { display: grid; place-items: center; min-width: 32px; height: 32px; padding: 0 6px; border-radius: 16px; background: var(--route); color: #fff; font: 700 14px/1 system-ui, sans-serif; border: 3px solid #fff; box-shadow: 0 2px 6px rgba(0, 0, 0, .5); }
-.me { width: 18px; height: 18px; border-radius: 50%; background: #1976d2; border: 3px solid #fff; box-shadow: 0 0 0 2px rgba(25, 118, 210, .35), 0 1px 4px rgba(0, 0, 0, .5); }
+.me { position: relative; width: 18px; height: 18px; border-radius: 50%; background: #1976d2; border: 3px solid #fff; box-shadow: 0 0 0 2px rgba(25, 118, 210, .35), 0 1px 4px rgba(0, 0, 0, .5); }
 .leaflet-container { font: inherit; }
 
 /* Leaflet-knoppen onder de bovenbalk */
@@ -247,3 +247,20 @@ dialog h2 { margin: 0 0 12px; font-size: 20px; }
 #poitray button[aria-pressed="true"]::after { border-color: var(--accent); background: var(--accent); box-shadow: inset 0 0 0 3px var(--surface); }
 .stat-group { display: contents; }
 .stat .poi-ic { width: 17px; height: 17px; fill: none; stroke: var(--pc); stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+
+/* Animaties: laadring en pulserend GPS-punt. Gebaseerd op Ring en Pulse van loading.dev (MIT, zie LICENSE-loading-dev.txt). */
+#busy { position: fixed; z-index: 500; left: 10px; bottom: calc(var(--sheet-h, 150px) + 12px + var(--safe-b)); width: 40px; height: 40px; display: grid; place-items: center; background: var(--bg); border-radius: 50%; box-shadow: var(--shadow); color: var(--accent); transition: bottom .2s; pointer-events: none; }
+#busy[hidden] { display: none; }
+#busy svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2.5; }
+#busy .bg { opacity: .2; }
+#busy .arc { stroke-dasharray: 16 46.8; stroke-linecap: round; transform-origin: center; animation: kn-spin .9s linear infinite; }
+@keyframes kn-spin { to { transform: rotate(360deg); } }
+.me i { position: absolute; left: 50%; top: 50%; width: 46px; height: 46px; margin: -23px 0 0 -23px; border-radius: 50%; background: #1976d2; opacity: 0; transform: scale(.25); animation: kn-pulse 2.2s ease-out infinite; pointer-events: none; }
+@keyframes kn-pulse { from { opacity: .4; transform: scale(.25); } to { opacity: 0; transform: scale(1); } }
+.poi { animation: kn-pop .18s ease-out; }
+@keyframes kn-pop { from { transform: scale(.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  #busy .arc { animation-duration: 2.4s; }
+  .me i { animation: none; opacity: .2; transform: scale(.6); }
+  .poi { animation: none; }
+}

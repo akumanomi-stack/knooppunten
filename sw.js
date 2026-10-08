@@ -1,5 +1,5 @@
 // Service worker: app en kaartdata werken offline; kaartachtergrond wordt bewaard voor wat je bekeken hebt.
-const VERSION = 'v24';
+const VERSION = 'v25';
 const SHELL = `shell-${VERSION}`;
 const DATA = `data-${VERSION}`;
 const TILES = `tiles-${VERSION}`;
