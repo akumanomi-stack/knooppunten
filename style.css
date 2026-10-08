@@ -1,28 +1,38 @@
+@font-face { font-family: "Inter"; font-style: normal; font-weight: 100 900; font-display: swap; src: url("fonts/inter-latin.woff2") format("woff2"); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
 :root {
-  /* palet "Heide": saliegroen op zand, terracotta voor fiets, violet voor de route */
-  --bg: #fffdf8;
-  --fg: #2b2a22;
-  --muted: #6a665a;
-  --line: #e6dfcf;
-  --accent: #4f7a4a;
+  /* kleuren (klassiek groen, rode fietsknooppunten, oranje route) */
+  --bg: #ffffff;
+  --fg: #1c2420;
+  --muted: #5d6b63;
+  --line: #e1e7e3;
+  --accent: #1f7a35;
+  --surface: #f2f6f3;
   --accent-fg: #ffffff;
-  --surface: #f4efe5;
-  --w: #4f7a4a;
-  --f: #3f6fa8;
-  --bike: #c8553d;
-  --route: #5b3fa0;
-  --warn: #b3261e;
-  --map-bg: #f4efe5;
-  --shadow: 0 2px 12px rgba(43, 42, 34, .18);
+  --w: #2e7d32;
+  --f: #1565c0;
+  --bike: #d32f2f;
+  --route: #e65100;
+  --warn: #b71c1c;
+  --map-bg: #e8efe9;
+  /* vormgeving: een vaste schaal voor letters, afstanden, hoeken en schaduw */
+  --font: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --fs-xs: 12px; --fs-sm: 14px; --fs-md: 16px; --fs-lg: 20px; --fs-xl: 30px;
+  --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 24px;
+  --r-sm: 10px; --r-md: 14px; --r-lg: 24px;
+  --shadow: 0 1px 2px rgba(16, 24, 20, .06), 0 4px 14px rgba(16, 24, 20, .10);
+  --shadow-up: 0 -1px 2px rgba(16, 24, 20, .04), 0 -6px 24px rgba(16, 24, 20, .10);
+  --glass: rgba(20, 28, 23, .82);
+  --ease: cubic-bezier(.2, .8, .2, 1);
   --safe-b: env(safe-area-inset-bottom, 0px);
   --safe-t: env(safe-area-inset-top, 0px);
 }
 @media (prefers-color-scheme: dark) {
-  :root { --bg: #1d211a; --fg: #ece8dc; --muted: #a9a592; --line: #343829; --accent: #8fbf86; --accent-fg: #14210f; --surface: #272c21; --w: #8fbf86; --f: #86aee0; --bike: #e58a73; --route: #b9a6f2; --warn: #f0a090; --map-bg: #1d211a; --shadow: 0 2px 12px rgba(0, 0, 0, .5); }
+  :root { --bg: #17201b; --fg: #eaf0ec; --muted: #9db0a5; --line: #2a362f; --accent: #66bb6a; --accent-fg: #0d1a11; --surface: #212d26; --w: #66bb6a; --f: #64b5f6; --bike: #ef5350; --route: #ff9800; --warn: #ef9a9a; --map-bg: #1f2a24;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 4px 16px rgba(0, 0, 0, .35); --shadow-up: 0 -6px 24px rgba(0, 0, 0, .4); --glass: rgba(10, 14, 12, .82); }
 }
 * { box-sizing: border-box; }
 html, body { height: 100%; margin: 0; }
-body { font: 16px/1.35 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color: var(--fg); background: var(--bg); overflow: hidden; -webkit-tap-highlight-color: transparent; }
+body { font: 400 var(--fs-md)/1.4 var(--font); font-feature-settings: "cv11", "ss03"; -webkit-font-smoothing: antialiased; letter-spacing: -.005em; color: var(--fg); background: var(--bg); overflow: hidden; -webkit-tap-highlight-color: transparent; }
 #map { position: fixed; inset: 0; z-index: 0; background: var(--map-bg); }
 button { font: inherit; color: inherit; }
 
@@ -33,7 +43,7 @@ button { font: inherit; color: inherit; }
 .seg button { border: 0; background: transparent; padding: 0 16px; font-weight: 700; min-height: 40px; border-radius: 999px; color: var(--muted); }
 .seg button.on { background: var(--accent); color: var(--accent-fg); }
 
-#toast { position: fixed; z-index: 600; top: calc(64px + var(--safe-t)); left: 50%; transform: translateX(-50%); max-width: calc(100% - 20px); background: rgba(20, 28, 23, .92); color: #fff; padding: 10px 14px; border-radius: 10px; font-size: 14px; box-shadow: var(--shadow); text-align: center; }
+#toast { position: fixed; z-index: 600; top: calc(64px + var(--safe-t)); left: 50%; transform: translateX(-50%); max-width: calc(100% - 20px); background: var(--glass); -webkit-backdrop-filter: blur(14px) saturate(1.4); backdrop-filter: blur(14px) saturate(1.4); color: #fff; padding: 10px 16px; border-radius: var(--r-md); font-size: 14px; box-shadow: var(--shadow); text-align: center; }
 
 /* knoppen op de kaart */
 #mapbtns { position: fixed; z-index: 500; right: 10px; bottom: calc(var(--sheet-h, 150px) + 12px + var(--safe-b)); display: flex; flex-direction: column; gap: 8px; align-items: flex-end; transition: bottom .2s; }
@@ -42,14 +52,14 @@ button { font: inherit; color: inherit; }
 #mapbtns button[aria-pressed="true"] { background: var(--accent); color: var(--accent-fg); }
 
 /* onderpaneel */
-#sheet { position: fixed; z-index: 500; left: 0; right: 0; bottom: 0; background: var(--bg); border-radius: 24px 24px 0 0; box-shadow: 0 -4px 20px rgba(0, 0, 0, .18); padding: 0 16px calc(12px + var(--safe-b)); max-height: 62vh; overflow: auto; }
+#sheet { position: fixed; z-index: 500; left: 0; right: 0; bottom: 0; background: var(--bg); border-radius: var(--r-lg) var(--r-lg) 0 0; box-shadow: var(--shadow-up); padding: 0 16px calc(12px + var(--safe-b)); max-height: 62vh; overflow: auto; }
 #grab { display: grid; place-items: center; width: 100%; height: 30px; border: 0; background: transparent; padding: 0; color: var(--muted); }
 #grab svg { width: 30px; height: 30px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; transition: transform .2s; }
 #sheet:not(.collapsed) #grab svg { transform: rotate(180deg); }
 #sheet.collapsed footer, #sheet.collapsed .seq { display: none; }
 #sheet.collapsed #actions { display: flex; justify-content: space-between; gap: 6px; margin: 12px 0 4px; }
-.label { display: block; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
-.big { font-size: 34px; line-height: 1.1; font-weight: 700; }
+.label { display: block; font-size: var(--fs-xs); font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+.big { font-size: var(--fs-xl); line-height: 1.1; font-weight: 700; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
 .big b { color: var(--accent); }
 .big small, .mid small { font-size: 16px; font-weight: 500; color: var(--muted); }
 .mid { font-size: 20px; font-weight: 600; }
@@ -59,20 +69,20 @@ button { font: inherit; color: inherit; }
 #summary { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
 .sum-main { min-width: 0; }
 #sum-title { font-weight: 700; font-size: 17px; }
-#sum-len { font-size: 24px; font-weight: 800; white-space: nowrap; color: var(--accent); }
+#sum-len { font-size: 24px; letter-spacing: -.02em; font-variant-numeric: tabular-nums; font-weight: 700; white-space: nowrap; color: var(--accent); }
 .seq { color: var(--muted); font-size: 14px; word-break: break-word; margin-top: 2px; }
 #actions { display: flex; justify-content: space-between; gap: 6px; margin: 12px 0 4px; }
 .ib { display: flex; flex-direction: column; align-items: center; gap: 5px; flex: 1 1 0; min-width: 0; border: 0; background: transparent; padding: 0; color: var(--muted); font-size: 12px; font-weight: 600; }
-.ib svg { width: 100%; max-width: 64px; height: 52px; padding: 14px 0; border-radius: 16px; background: var(--surface); fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; color: var(--accent); }
+.ib svg { width: 100%; max-width: 64px; height: 52px; padding: 14px 0; border-radius: var(--r-md); transition: transform .15s var(--ease), background-color .15s; background: var(--surface); fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; color: var(--accent); }
 .ib:active svg { transform: scale(.94); }
 .ib:disabled { opacity: .4; }
 footer { display: flex; justify-content: space-between; gap: 8px; color: var(--muted); font-size: 12px; flex-wrap: wrap; }
 footer a { color: inherit; }
 
 /* kaartmarkers */
-.nodepin { display: grid; place-items: center; min-width: 26px; height: 22px; padding: 0 5px; border-radius: 11px; background: var(--w); color: #fff; font: 700 12px/1 system-ui, sans-serif; border: 2px solid #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, .45); }
+.nodepin { display: grid; place-items: center; min-width: 26px; height: 22px; padding: 0 5px; border-radius: 11px; background: var(--w); color: #fff; font: 700 12px/1 var(--font); border: 2px solid #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, .45); }
 .nodepin.f { background: var(--bike); }
-.wp { display: grid; place-items: center; min-width: 32px; height: 32px; padding: 0 6px; border-radius: 16px; background: var(--route); color: #fff; font: 700 14px/1 system-ui, sans-serif; border: 3px solid #fff; box-shadow: 0 2px 6px rgba(0, 0, 0, .5); }
+.wp { display: grid; place-items: center; min-width: 32px; height: 32px; padding: 0 6px; border-radius: 16px; background: var(--route); color: #fff; font: 700 14px/1 var(--font); border: 3px solid #fff; box-shadow: 0 2px 6px rgba(0, 0, 0, .5); }
 .me { position: relative; width: 18px; height: 18px; border-radius: 50%; background: #1976d2; border: 3px solid #fff; box-shadow: 0 0 0 2px rgba(25, 118, 210, .35), 0 1px 4px rgba(0, 0, 0, .5); }
 .leaflet-container { font: inherit; }
 
@@ -93,14 +103,14 @@ footer a { color: inherit; }
 .chip small { color: var(--muted); font-size: 12px; }
 .chip.back { border-style: dashed; border-color: var(--line); }
 .chip.back b { color: var(--muted); }
-.dist-tip { background: var(--bg); color: var(--fg); border: 1px solid var(--accent); border-radius: 8px; font: 700 12px/1 system-ui, sans-serif; padding: 3px 6px; box-shadow: none; }
+.dist-tip { background: var(--bg); color: var(--fg); border: 1px solid var(--accent); border-radius: 8px; font: 700 12px/1 var(--font); padding: 3px 6px; box-shadow: none; }
 .dist-tip::before { display: none; }
 .nodepin.focus, .wp.focus { outline: 3px solid var(--accent); outline-offset: 2px; }
 
 /* dialogen */
-dialog { border: 0; border-radius: 24px; padding: 18px; width: min(92vw, 420px); background: var(--bg); color: var(--fg); box-shadow: 0 8px 40px rgba(0, 0, 0, .4); }
-dialog::backdrop { background: rgba(0, 0, 0, .45); }
-dialog h2 { margin: 0 0 12px; font-size: 20px; }
+dialog { border: 0; border-radius: var(--r-lg); padding: var(--s5) 20px 20px; width: min(92vw, 420px); background: var(--bg); color: var(--fg); box-shadow: 0 8px 40px rgba(0, 0, 0, .4); }
+dialog::backdrop { background: rgba(10, 14, 12, .45); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); }
+dialog h2 { margin: 0 0 var(--s4); font-size: var(--fs-lg); font-weight: 650; letter-spacing: -.01em; }
 .field { display: flex; justify-content: space-between; align-items: center; gap: 12px; font-weight: 600; }
 .field input { width: 5em; font-size: 18px; padding: 8px; border: 1px solid var(--line); border-radius: 10px; background: transparent; color: var(--fg); text-align: right; }
 .muted { color: var(--muted); font-size: 14px; }
@@ -124,7 +134,7 @@ dialog h2 { margin: 0 0 12px; font-size: 20px; }
 #compass-svg { transition: transform .1s linear; }
 
 /* start / stop */
-.startbtn { display: block; width: 100%; min-height: 44px; margin: 10px 0 0; border: 0; border-radius: 22px; background: var(--accent); color: var(--accent-fg); font-size: 16px; font-weight: 800; letter-spacing: .03em; }
+.startbtn { display: block; width: 100%; min-height: 48px; transition: transform .15s var(--ease); margin: 10px 0 0; border: 0; border-radius: 22px; background: var(--accent); color: var(--accent-fg); font-size: var(--fs-md); font-weight: 650; letter-spacing: .01em; }
 .startbtn.stop { background: var(--warn); color: #fff; }
 .startbtn:active { transform: scale(.985); }
 
@@ -222,7 +232,7 @@ dialog h2 { margin: 0 0 12px; font-size: 20px; }
 #publish-dialog .field input, #publish-dialog .field select { width: 100%; max-width: none; text-align: left; font-size: 16px; padding: 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--fg); }
 
 /* info-kaartje met aflopende tijdsbalk */
-#nodecard { position: fixed; z-index: 650; top: calc(64px + var(--safe-t)); left: 50%; transform: translateX(-50%); width: min(calc(100% - 20px), 380px); display: flex; flex-direction: column; gap: 2px; padding: 12px 16px 16px; border-radius: 16px; overflow: hidden; background: rgba(20, 28, 23, .94); color: #fff; box-shadow: var(--shadow); text-align: left; cursor: pointer; }
+#nodecard { position: fixed; z-index: 650; top: calc(64px + var(--safe-t)); left: 50%; transform: translateX(-50%); width: min(calc(100% - 20px), 380px); display: flex; flex-direction: column; gap: 2px; padding: 12px 16px 16px; border-radius: 16px; overflow: hidden; background: var(--glass); -webkit-backdrop-filter: blur(14px) saturate(1.4); backdrop-filter: blur(14px) saturate(1.4); color: #fff; box-shadow: var(--shadow); text-align: left; cursor: pointer; }
 #nodecard[hidden] { display: none; }
 #nc-title { font-size: 20px; line-height: 1.2; }
 #nc-sub { font-size: 15px; opacity: .9; }
@@ -269,6 +279,13 @@ dialog h2 { margin: 0 0 12px; font-size: 20px; }
 
 /* Leaflet-bedieningselementen in het palet */
 .leaflet-bar { border: 0 !important; border-radius: 14px; box-shadow: var(--shadow) !important; overflow: hidden; }
-.leaflet-bar a, .leaflet-bar a:hover { background: var(--bg); color: var(--accent); border-bottom-color: var(--line); }
+.leaflet-bar a, .leaflet-bar a:hover { background: var(--bg); color: var(--fg); border-bottom-color: var(--line); }
 .leaflet-touch .leaflet-bar a { width: 40px; height: 40px; line-height: 40px; }
 .leaflet-control-layers { background: var(--bg); color: var(--fg); border: 0 !important; border-radius: 14px; box-shadow: var(--shadow) !important; }
+
+/* aanraken: direct een subtiel indruk-effect (alleen transform, dus vloeiend) */
+.rb, #mapbtns button, .seg button, .chip, .chipbtn, .menu button, .dialog-actions button, #loop-results button, #routes-list .open, .iconrow button, .opt { transition: transform .15s var(--ease), background-color .15s, color .15s; }
+.rb:active, #mapbtns button:active, .chip:active, .chipbtn:active, .menu button:active, .dialog-actions button:active, #loop-results button:active, #routes-list .open:active, .iconrow button:active, .opt:active { transform: scale(.95); }
+.seg button:active { transform: scale(.97); }
+.ib:active svg { transform: scale(.92); background: var(--line); }
+button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }

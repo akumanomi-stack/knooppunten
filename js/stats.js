@@ -1,5 +1,5 @@
 // Stappen, calorieën en watertappunten langs een route. Schattingen, zonder DOM.
-import { haversine } from './graph.js?v=26';
+import { haversine } from './graph.js?v=27';
 
 export const STEPS_PER_KM = 1333;
 export const DEFAULT_WEIGHT = 75; // vast gemiddelde: de app vraagt niet naar je gewicht

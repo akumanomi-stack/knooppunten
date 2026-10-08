@@ -1,13 +1,13 @@
-import { Graph, tileKeysForBounds, routeProgress, routeToGPX, formatDistance, haversine, googleMapsUrl } from './graph.js?v=26';
-import { isNative, startNativeWatch, stopNativeWatch, ensureNotificationPermission, nativeNotify } from './native.js?v=26';
-import { createCloud, validateTitle } from './cloud.js?v=26';
-import { PROVINCES, lookupPlace, formatKm } from './place.js?v=26';
-import { configured, firebaseConfig } from './firebase-config.js?v=26';
-import { routeSteps, routeText, routeTitle, estimateMinutes, formatDuration, readRoutes, writeRoutes, makeSavedRoute, defaultRouteName } from './share.js?v=26';
-import { stepsFor, kcalFor, formatSteps, waterAlong } from './stats.js?v=26';
-import { CATS, CAT_KEYS, badgeHtml, svg as poiSvg, loadPrefs, savePrefs, fetchCat, describe as poiDescribe, countLabel } from './poi.js?v=26';
-import { createTrip, tripUpdate, liveKmh, avgKmh, legDone, fmtKmh, fmtMoveTime } from './trip.js?v=26';
-import { dutchVoices, bestVoice, speakText, say, loadClips } from './voice.js?v=26';
+import { Graph, tileKeysForBounds, routeProgress, routeToGPX, formatDistance, haversine, googleMapsUrl } from './graph.js?v=27';
+import { isNative, startNativeWatch, stopNativeWatch, ensureNotificationPermission, nativeNotify } from './native.js?v=27';
+import { createCloud, validateTitle } from './cloud.js?v=27';
+import { PROVINCES, lookupPlace, formatKm } from './place.js?v=27';
+import { configured, firebaseConfig } from './firebase-config.js?v=27';
+import { routeSteps, routeText, routeTitle, estimateMinutes, formatDuration, readRoutes, writeRoutes, makeSavedRoute, defaultRouteName } from './share.js?v=27';
+import { stepsFor, kcalFor, formatSteps, waterAlong } from './stats.js?v=27';
+import { CATS, CAT_KEYS, badgeHtml, svg as poiSvg, loadPrefs, savePrefs, fetchCat, describe as poiDescribe, countLabel } from './poi.js?v=27';
+import { createTrip, tripUpdate, liveKmh, avgKmh, legDone, fmtKmh, fmtMoveTime } from './trip.js?v=27';
+import { dutchVoices, bestVoice, speakText, say, loadClips } from './voice.js?v=27';
 
 const L = window.L;
 const $ = (id) => document.getElementById(id);
@@ -251,7 +251,7 @@ async function redraw() {
       const g0 = e.geom[0];
       const g1 = e.geom[e.geom.length - 1];
       if (!b.contains(g0) && !b.contains(g1)) continue;
-      L.polyline(e.geom, { color: cssVar(state.net === 'w' ? '--w' : '--bike', state.net === 'w' ? '#4f7a4a' : '#c8553d'), weight: 2.5, opacity: 0.6, interactive: false }).addTo(edgeLayer);
+      L.polyline(e.geom, { color: cssVar(state.net === 'w' ? '--w' : '--bike', state.net === 'w' ? '#2e7d32' : '#c62828'), weight: 2.5, opacity: 0.6, interactive: false }).addTo(edgeLayer);
     }
   }
 
@@ -269,7 +269,7 @@ async function redraw() {
         keyboard: false,
       });
     } else {
-      m = L.circleMarker([n.lat, n.lon], { radius: 6, weight: 2, color: '#fff', fillColor: cssVar(n.net === 'w' ? '--w' : '--bike', n.net === 'w' ? '#4f7a4a' : '#c8553d'), fillOpacity: 1 });
+      m = L.circleMarker([n.lat, n.lon], { radius: 6, weight: 2, color: '#fff', fillColor: cssVar(n.net === 'w' ? '--w' : '--bike', n.net === 'w' ? '#2e7d32' : '#c62828'), fillOpacity: 1 });
     }
     m.on('click', (ev) => {
       L.DomEvent.stopPropagation(ev);
@@ -309,7 +309,7 @@ function drawRoute() {
   });
   if (state.route && !state.route.error) {
     L.polyline(state.route.coords, { color: '#ffffff', weight: 9, opacity: 0.9, interactive: false }).addTo(routeLayer);
-    L.polyline(state.route.coords, { color: cssVar('--route', '#5b3fa0'), weight: 5, opacity: 0.95, interactive: false }).addTo(routeLayer);
+    L.polyline(state.route.coords, { color: cssVar('--route', '#e65100'), weight: 5, opacity: 0.95, interactive: false }).addTo(routeLayer);
   }
 }
 
@@ -773,7 +773,7 @@ async function renderChoices() {
   if (!neigh.length) {
     chips.textContent = 'Geen verbindingen gevonden in de kaartdata.';
   }
-  const accent = cssVar('--accent', '#4f7a4a');
+  const accent = cssVar('--accent', '#1f7a35');
   if (peeking) L.circleMarker([meta.lat, meta.lon], { radius: 17, weight: 4, color: accent, fillOpacity: 0, interactive: false }).addTo(focusLayer);
   for (const { node, edgeKey, len } of neigh) {
     const back = !peeking && node.key === prev;
@@ -1415,7 +1415,7 @@ let cloudApi = cloud;
 async function initCloud() {
   if (!configured()) return;
   try {
-    const { createFirebaseAdapter } = await import('./firebase-adapter.js?v=26');
+    const { createFirebaseAdapter } = await import('./firebase-adapter.js?v=27');
     const adapter = await createFirebaseAdapter(firebaseConfig);
     cloudApi = createCloud(adapter, { onChange: renderCloud });
     Object.assign(cloud, cloudApi);
