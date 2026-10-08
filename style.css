@@ -1,27 +1,29 @@
 :root {
-  --bg: #ffffff;
-  --fg: #1c2420;
-  --muted: #5d6b63;
-  --line: #d9e0db;
-  --accent: #1f7a35;
-  --surface: #f0f5f1;
+  /* palet "Heide": saliegroen op zand, terracotta voor fiets, violet voor de route */
+  --bg: #fffdf8;
+  --fg: #2b2a22;
+  --muted: #6a665a;
+  --line: #e6dfcf;
+  --accent: #4f7a4a;
   --accent-fg: #ffffff;
-  --w: #2e7d32;
-  --f: #1565c0;
-  --bike: #d32f2f;
-  --route: #e65100;
-  --warn: #b71c1c;
-  --shadow: 0 2px 12px rgba(0, 0, 0, .18);
+  --surface: #f4efe5;
+  --w: #4f7a4a;
+  --f: #3f6fa8;
+  --bike: #c8553d;
+  --route: #5b3fa0;
+  --warn: #b3261e;
+  --map-bg: #f4efe5;
+  --shadow: 0 2px 12px rgba(43, 42, 34, .18);
   --safe-b: env(safe-area-inset-bottom, 0px);
   --safe-t: env(safe-area-inset-top, 0px);
 }
 @media (prefers-color-scheme: dark) {
-  :root { --bg: #17201b; --fg: #eaf0ec; --muted: #9db0a5; --line: #2c3a32; --accent: #66bb6a; --accent-fg: #0d1a11; --surface: #212d26; --w: #66bb6a; --f: #64b5f6; --bike: #ef5350; --route: #ff9800; --warn: #ef9a9a; }
+  :root { --bg: #1d211a; --fg: #ece8dc; --muted: #a9a592; --line: #343829; --accent: #8fbf86; --accent-fg: #14210f; --surface: #272c21; --w: #8fbf86; --f: #86aee0; --bike: #e58a73; --route: #b9a6f2; --warn: #f0a090; --map-bg: #1d211a; --shadow: 0 2px 12px rgba(0, 0, 0, .5); }
 }
 * { box-sizing: border-box; }
 html, body { height: 100%; margin: 0; }
 body { font: 16px/1.35 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color: var(--fg); background: var(--bg); overflow: hidden; -webkit-tap-highlight-color: transparent; }
-#map { position: fixed; inset: 0; z-index: 0; background: #e8efe9; }
+#map { position: fixed; inset: 0; z-index: 0; background: var(--map-bg); }
 button { font: inherit; color: inherit; }
 
 /* bovenbalk */
@@ -264,3 +266,9 @@ dialog h2 { margin: 0 0 12px; font-size: 20px; }
   .me i { animation: none; opacity: .2; transform: scale(.6); }
   .poi { animation: none; }
 }
+
+/* Leaflet-bedieningselementen in het palet */
+.leaflet-bar { border: 0 !important; border-radius: 14px; box-shadow: var(--shadow) !important; overflow: hidden; }
+.leaflet-bar a, .leaflet-bar a:hover { background: var(--bg); color: var(--accent); border-bottom-color: var(--line); }
+.leaflet-touch .leaflet-bar a { width: 40px; height: 40px; line-height: 40px; }
+.leaflet-control-layers { background: var(--bg); color: var(--fg); border: 0 !important; border-radius: 14px; box-shadow: var(--shadow) !important; }
